@@ -1,0 +1,57 @@
+import {
+  BrickWall,
+  Bike,
+  CarFront,
+  ChefHat,
+  Droplets,
+  Ellipsis,
+  Flame,
+  GraduationCap,
+  Hammer,
+  HardHat,
+  Laptop,
+  PaintRoller,
+  PawPrint,
+  Scissors,
+  ShoppingBag,
+  Snowflake,
+  Soup,
+  Sparkles,
+  Sprout,
+  Store,
+  Truck,
+  WashingMachine,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
+
+/** Nombre guardado en `categories.icon` -> componente Lucide. Un icono desconocido cae en `Ellipsis`. */
+const icons: Record<string, LucideIcon> = {
+  zap: Zap,
+  droplets: Droplets,
+  flame: Flame,
+  "brick-wall": BrickWall,
+  "paint-roller": PaintRoller,
+  hammer: Hammer,
+  snowflake: Snowflake,
+  "washing-machine": WashingMachine,
+  "car-front": CarFront,
+  sparkles: Sparkles,
+  sprout: Sprout,
+  truck: Truck,
+  "hard-hat": HardHat,
+  "chef-hat": ChefHat,
+  soup: Soup,
+  bike: Bike,
+  store: Store,
+  "shopping-bag": ShoppingBag,
+  scissors: Scissors,
+  "graduation-cap": GraduationCap,
+  laptop: Laptop,
+  "paw-print": PawPrint,
+  ellipsis: Ellipsis,
+};
+
+export function getCategoryIcon(name: string | null | undefined): LucideIcon {
+  return (name && icons[name]) || Ellipsis;
+}
