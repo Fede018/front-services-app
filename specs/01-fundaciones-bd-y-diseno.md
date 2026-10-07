@@ -1,6 +1,6 @@
 # SPEC 01 — Fundaciones: base de datos Supabase, esqueleto Next.js y sistema de diseño
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** ninguno
 > **Date:** 2026-10-06
 > **Objective:** Dejar corriendo en local el esquema núcleo de Supabase (con RLS y datos de referencia) en `yunta_backend`, un proyecto Next.js conectado a él en `yunta_frontend`, y los tokens y componentes base del sistema de diseño de YUNTA.
@@ -11,14 +11,14 @@ El "SPEC MAESTRO" original abarca 6 fases y más de 5 dominios (BD, búsqueda, a
 
 Hoja de ruta (cada uno se escribe con `/spec` cuando toque; **no** forman parte de este spec):
 
-| Spec | Contenido |
-| ---- | --------- |
-| 02 | Home con hero `noche_ciudad`, función `search_providers`, resultados, filtros, perfil público, botón WhatsApp |
-| 03 | Auth, registro guiado de prestadores, panel del prestador, imágenes, horarios, disponibilidad |
-| 04 | Panel admin: aprobaciones, verificación, suspensión, categorías, localidades, usuarios, auditoría |
-| 05 | Confianza: reseñas, favoritos, reportes, moderación de ambos |
-| 06 | Descubrimiento y medición: eventos de contacto y búsqueda, métricas, SEO, mapas y distancia, páginas institucionales |
-| 07 | Monetización: planes, suscripciones, destacados, Mercado Pago, webhooks |
+| Spec | Contenido                                                                                                            |
+| ---- | -------------------------------------------------------------------------------------------------------------------- |
+| 02   | Home con hero `noche_ciudad`, función `search_providers`, resultados, filtros, perfil público, botón WhatsApp        |
+| 03   | Auth, registro guiado de prestadores, panel del prestador, imágenes, horarios, disponibilidad                        |
+| 04   | Panel admin: aprobaciones, verificación, suspensión, categorías, localidades, usuarios, auditoría                    |
+| 05   | Confianza: reseñas, favoritos, reportes, moderación de ambos                                                         |
+| 06   | Descubrimiento y medición: eventos de contacto y búsqueda, métricas, SEO, mapas y distancia, páginas institucionales |
+| 07   | Monetización: planes, suscripciones, destacados, Mercado Pago, webhooks                                              |
 
 ## Estado real detectado al escribir el spec
 
@@ -120,12 +120,12 @@ provider_images(id, provider_id, storage_path text, alt text,
 
 Reglas RLS:
 
-| Tabla | Lectura pública (anon) | Escritura |
-| ----- | ---------------------- | --------- |
-| `categories`, `locations` | solo `is_active` | solo `is_admin()` |
-| `providers` | solo `status = 'published'` | dueño sobre las suyas (no puede pasar `status` a `published` ni cambiar `verified_at`); admin todo |
-| hijas de `providers` (`services`, `business_hours`, `provider_*`, `availability_status`) | solo si el prestador está `published` | dueño del prestador; admin todo |
-| `profiles` | cada usuario su fila; admin todas | usuario edita su fila **sin** poder cambiar `role`; admin cambia `role` |
+| Tabla                                                                                    | Lectura pública (anon)                | Escritura                                                                                          |
+| ---------------------------------------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `categories`, `locations`                                                                | solo `is_active`                      | solo `is_admin()`                                                                                  |
+| `providers`                                                                              | solo `status = 'published'`           | dueño sobre las suyas (no puede pasar `status` a `published` ni cambiar `verified_at`); admin todo |
+| hijas de `providers` (`services`, `business_hours`, `provider_*`, `availability_status`) | solo si el prestador está `published` | dueño del prestador; admin todo                                                                    |
+| `profiles`                                                                               | cada usuario su fila; admin todas     | usuario edita su fila **sin** poder cambiar `role`; admin cambia `role`                            |
 
 Función `public.is_admin()`: `security definer`, `set search_path = ''`, lee `profiles.role`.
 
@@ -184,30 +184,30 @@ Cada paso deja el sistema ejecutable y es commiteable por separado.
 
 ## Acceptance criteria
 
-- [ ] `npx supabase start` en `yunta_backend` levanta sin errores y `npx supabase db reset` aplica migraciones y seed sin errores.
-- [ ] Existen las 10 tablas del esquema núcleo y todas tienen RLS habilitado (`select relrowsecurity` es `true` para cada una).
-- [ ] `select count(*) from categories where is_active` devuelve 23.
-- [ ] `select count(*) from locations where kind = 'city' and is_active` devuelve 2 (San Salvador de Jujuy y Palpalá).
-- [ ] Como `anon`, `select` sobre `providers` devuelve solo filas con `status = 'published'`.
-- [ ] Como `anon`, `insert`, `update` y `delete` sobre cualquier tabla núcleo fallan.
-- [ ] Un usuario autenticado `client` que ejecuta `update profiles set role = 'admin'` sobre su fila falla o no cambia el valor.
-- [ ] Un usuario autenticado nuevo tiene `profiles.role = 'client'` aunque envíe `role: 'admin'` en `raw_user_meta_data`.
-- [ ] Un prestador no puede poner `status = 'published'` ni `verified_at` en su propia fila; sí puede pasar `draft` a `pending_review`.
-- [ ] Un prestador no puede leer ni editar `services` de otro prestador no publicado.
-- [ ] Insertar `services` con `currency = 'USD'` falla.
-- [ ] Insertar `providers.whatsapp = '3884123456'` (sin `+54`) falla por el check E.164.
-- [ ] Subir a `provider-images` un archivo `.pdf` o de más de 5 MB falla; subir un `.jpg` de 1 MB en la carpeta propia funciona.
-- [ ] Todos los prestadores del seed tienen `is_demo = true` y `business_name` que empieza con `[DEMO]`.
-- [ ] `npx supabase test db` termina con todos los tests en verde.
-- [ ] Ningún archivo versionado contiene `service_role` ni claves reales (verificado con `git grep -i service_role` y revisión de `.env*` en `.gitignore`).
-- [ ] `npm run lint`, `npx tsc --noEmit` y `npm run build` terminan con código 0.
-- [ ] `/dev/design-system` muestra `Button`, `Input`, `Badge` y `Card` con estados hover, focus visible, disabled y error; el foco se ve con teclado.
-- [ ] En producción (`npm run build && npm start`) `/dev/design-system` responde 404.
-- [ ] `/` lista las 23 categorías leídas de la BD local y muestra mensaje de error si la BD está apagada.
-- [ ] `/` no genera scroll horizontal a 375 px de ancho.
-- [ ] Los contrastes texto/fondo de los tokens cumplen WCAG AA (4.5:1 texto normal) verificado con herramienta.
-- [ ] `references/` y `specs/` siguen intactos en `yunta_frontend`.
-- [ ] Ninguna migración fue aplicada al proyecto Supabase cloud.
+- [x] `npx supabase start` en `yunta_backend` levanta sin errores y `npx supabase db reset` aplica migraciones y seed sin errores.
+- [x] Existen las 10 tablas del esquema núcleo y todas tienen RLS habilitado (`select relrowsecurity` es `true` para cada una).
+- [x] `select count(*) from categories where is_active` devuelve 23.
+- [x] `select count(*) from locations where kind = 'city' and is_active` devuelve 2 (San Salvador de Jujuy y Palpalá).
+- [x] Como `anon`, `select` sobre `providers` devuelve solo filas con `status = 'published'`.
+- [x] Como `anon`, `insert`, `update` y `delete` sobre cualquier tabla núcleo fallan.
+- [x] Un usuario autenticado `client` que ejecuta `update profiles set role = 'admin'` sobre su fila falla o no cambia el valor.
+- [x] Un usuario autenticado nuevo tiene `profiles.role = 'client'` aunque envíe `role: 'admin'` en `raw_user_meta_data`.
+- [x] Un prestador no puede poner `status = 'published'` ni `verified_at` en su propia fila; sí puede pasar `draft` a `pending_review`.
+- [x] Un prestador no puede leer ni editar `services` de otro prestador no publicado.
+- [x] Insertar `services` con `currency = 'USD'` falla.
+- [x] Insertar `providers.whatsapp = '3884123456'` (sin `+54`) falla por el check E.164.
+- [x] Subir a `provider-images` un archivo `.pdf` o de más de 5 MB falla; subir un `.jpg` de 1 MB en la carpeta propia funciona.
+- [x] Todos los prestadores del seed tienen `is_demo = true` y `business_name` que empieza con `[DEMO]`.
+- [x] `npx supabase test db` termina con todos los tests en verde.
+- [x] Ningún archivo versionado contiene `service_role` ni claves reales (verificado con `git grep -i service_role` y revisión de `.env*` en `.gitignore`).
+- [x] `npm run lint`, `npx tsc --noEmit` y `npm run build` terminan con código 0.
+- [x] `/dev/design-system` muestra `Button`, `Input`, `Badge` y `Card` con estados hover, focus visible, disabled y error; el foco se ve con teclado.
+- [x] En producción (`npm run build && npm start`) `/dev/design-system` responde 404.
+- [x] `/` lista las 23 categorías leídas de la BD local y muestra mensaje de error si la BD está apagada.
+- [x] `/` no genera scroll horizontal a 375 px de ancho.
+- [x] Los contrastes texto/fondo de los tokens cumplen WCAG AA (4.5:1 texto normal) verificado con herramienta.
+- [x] `references/` y `specs/` siguen intactos en `yunta_frontend`.
+- [x] Ninguna migración fue aplicada al proyecto Supabase cloud.
 
 ## Decisions
 
@@ -231,15 +231,15 @@ Cada paso deja el sistema ejecutable y es commiteable por separado.
 
 ## Risks
 
-| Riesgo | Mitigación |
-| ------ | ---------- |
-| Docker en Windows consume mucha RAM con todos los servicios de Supabase | Desactivar servicios no usados en `config.toml` (analytics, edge runtime) si hace falta |
-| `create-next-app` se queja por directorio no vacío | Generar en carpeta temporal y mover archivos preservando `references/` y `specs/` |
-| Escalada de rol vía `raw_user_meta_data` o `update profiles` | Trigger de bloqueo de `role` + tests pgTAP específicos |
-| Políticas RLS con `security definer` mal configuradas | `set search_path = ''` y nombres de esquema calificados; test con usuarios de distintos roles |
-| Versiones de Next/Tailwind/Supabase cambian entre redacción y ejecución | Fijar versiones resultantes en `package.json` y anotarlas en el cierre del paso 10 |
-| Claves locales de `supabase start` se confunden con las del cloud | `.env.local` ignorado por git; `.env.example` solo con placeholders |
-| Referencia `dis_pag` incluye contenido de Solana | Se ignora; se anota en decisiones |
+| Riesgo                                                                  | Mitigación                                                                                    |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Docker en Windows consume mucha RAM con todos los servicios de Supabase | Desactivar servicios no usados en `config.toml` (analytics, edge runtime) si hace falta       |
+| `create-next-app` se queja por directorio no vacío                      | Generar en carpeta temporal y mover archivos preservando `references/` y `specs/`             |
+| Escalada de rol vía `raw_user_meta_data` o `update profiles`            | Trigger de bloqueo de `role` + tests pgTAP específicos                                        |
+| Políticas RLS con `security definer` mal configuradas                   | `set search_path = ''` y nombres de esquema calificados; test con usuarios de distintos roles |
+| Versiones de Next/Tailwind/Supabase cambian entre redacción y ejecución | Fijar versiones resultantes en `package.json` y anotarlas en el cierre del paso 10            |
+| Claves locales de `supabase start` se confunden con las del cloud       | `.env.local` ignorado por git; `.env.example` solo con placeholders                           |
+| Referencia `dis_pag` incluye contenido de Solana                        | Se ignora; se anota en decisiones                                                             |
 
 ## What is **not** in this spec
 
